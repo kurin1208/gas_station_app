@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 
+// ★ここにAPIキーを直書き
+const String googleApiKey = 'あなたのGoogleAPIキーをここに';
+const String openaiApiKey = 'sk-あなたのOpenAI APIキーをここに'; // ←使わない場合は消してOK
+
 Future<void> main() async {
-  await dotenv.load();
   runApp(const MyApp());
 }
 
@@ -31,7 +33,6 @@ class _GasStationListAppState extends State<GasStationListApp> {
   bool _loading = false;
   String? _errorMessage;
 
-  // ① 現在地を取得
   Future<void> _getLocationAndStations() async {
     setState(() {
       _loading = true;
@@ -40,7 +41,6 @@ class _GasStationListAppState extends State<GasStationListApp> {
     });
 
     try {
-      // パーミッション確認・取得
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -60,12 +60,11 @@ class _GasStationListAppState extends State<GasStationListApp> {
         _currentPosition = pos;
       });
 
-      // ② Google Places APIでガソリンスタンド取得
-      final apiKey = dotenv.env['GOOGLE_API_KEY'];
+      // ★ここでAPIキーを利用
       final url =
           'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
           '?location=${pos.latitude},${pos.longitude}'
-          '&radius=3000&type=gas_station&language=ja&key=$apiKey';
+          '&radius=3000&type=gas_station&language=ja&key=$googleApiKey';
 
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -85,7 +84,8 @@ class _GasStationListAppState extends State<GasStationListApp> {
         });
       } else {
         setState(() {
-          _errorMessage = 'APIリクエスト失敗: ${response.statusCode}';
+          _errorMessage =
+              'APIリクエスト失敗: ${response.statusCode}\n${response.body}';
           _loading = false;
         });
       }
@@ -100,7 +100,7 @@ class _GasStationListAppState extends State<GasStationListApp> {
   @override
   void initState() {
     super.initState();
-    _getLocationAndStations(); // 起動時に自動実行（ボタンでも可）
+    _getLocationAndStations();
   }
 
   @override
